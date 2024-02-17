@@ -1,4 +1,4 @@
-from helpers.pico import Pico, Pump
+from helpers.pico import Pico, Pump, MoistureSensor
 from helpers.api import PicoAPI
 from tools.hub_client import HubClient
 from utils import config
@@ -26,8 +26,14 @@ def main():
 
 
 def test():
-    pump = Pump()
-    pump.water(3)
+
+    import time
+    sensor = MoistureSensor()
+
+    while True:
+        humid = sensor.get_soil_humidity()
+        print(f"Moisture level: {round(humid, 2)}%")
+        time.sleep(5)
 
 
 if __name__ == "__main__":

@@ -66,32 +66,64 @@ class Pump:
 
     def __init__(self, name=None):
         self.name = name
+        self.led = None
+        self.relay = None
+
         self._configure_hardware()
         self._set_initial_state()
 
     def _configure_hardware(self):
         self.led = machine.Pin("LED", machine.Pin.OUT)
-        self.relay = machine.Pin(16, machine.Pin.OUT)
+        self.relay = machine.Pin(config.PUMP_RELAY_CTRL_PIN, machine.Pin.OUT)
 
     def _set_initial_state(self):
         self.led.off()
-        self.relay.value(1)
+        self.relay.value(config.RELAY_OFF)
 
     def water(self, water_time):
         self.led.on()
-        self.relay.value(0)
+        self.relay.value(config.RELAY_ON)
 
         time.sleep(water_time)
 
-        self.relay.value(1)
+        self.relay.value(config.RELAY_OFF)
         self.led.off()
 
 
 class MoistureSensor:
 
     def __init__(self):
-        pass
+        self.relay = None
+        self.sensor = None
+
+        self.__configure_hardware()
+        self.__set_initial_state()
+
+    def __configure_hardware(self):
+        self.relay = machine.Pin(config.SENSOR_RELAY_CTRL_PIN, machine.Pin.OUT)
+        self.sensor = machine.ADC(machine.Pin(config.ADC_PIN))
+
+    def __set_initial_state(self):
+        self.relay(config.RELAY_OFF)
 
     def get_soil_humidity(self):
-        pass
+        self.relay.value(config.RELAY_ON)
+        time.sleep(config.RELAY_DELAY)
+
+        humid = self._calc_humidity_level(self.sensor.read_u16())
+
+        self.relay.value(config.RELAY_OFF)
+
+        return humid
+
+    @staticmethod
+    def _calc_humidity_level(sample_value):
+
+        humid = (
+                (config.CALIBRATION_MAX - sample_value)
+                / (config.CALIBRATION_MAX - config.CALIBRATION_MIN)
+                * 100
+        )
+
+        return humid
 
