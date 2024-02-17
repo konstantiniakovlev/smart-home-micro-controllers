@@ -3,9 +3,13 @@ import urequests as requests
 
 class HubClient:
 
-    def __init__(self):
-        self.host = "home-hub.local"
-        self.port = 5000
+    def __init__(
+            self,
+            host="home-hub.local",
+            port=5000,
+    ):
+        self.host = host
+        self.port = port
         self.base_url = f"http://{self.host}:{self.port}"
 
     def register_device(self, payload):

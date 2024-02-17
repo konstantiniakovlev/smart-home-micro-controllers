@@ -64,8 +64,7 @@ class Pico:
 
 class Pump:
 
-    def __init__(self, name=None):
-        self.name = name
+    def __init__(self):
         self.led = None
         self.relay = None
 
@@ -96,21 +95,24 @@ class MoistureSensor:
         self.relay = None
         self.sensor = None
 
-        self.__configure_hardware()
-        self.__set_initial_state()
+        self._configure_hardware()
+        self._set_initial_state()
 
-    def __configure_hardware(self):
+    def _configure_hardware(self):
         self.relay = machine.Pin(config.SENSOR_RELAY_CTRL_PIN, machine.Pin.OUT)
         self.sensor = machine.ADC(machine.Pin(config.ADC_PIN))
 
-    def __set_initial_state(self):
+    def _set_initial_state(self):
         self.relay(config.RELAY_OFF)
+
+    def sample(self):
+        return self.sensor.read_u16()
 
     def get_soil_humidity(self):
         self.relay.value(config.RELAY_ON)
         time.sleep(config.RELAY_DELAY)
 
-        humid = self._calc_humidity_level(self.sensor.read_u16())
+        humid = self._calc_humidity_level(self.sample())
 
         self.relay.value(config.RELAY_OFF)
 

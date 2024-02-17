@@ -19,21 +19,29 @@ def main():
     client.register_program(payload=program_payload)
     print("Program registered")
 
-    pump = Pump(name="Water Pump")
+    pump = Pump()
     api = PicoAPI(ctrl_ent=pump)
 
     api.run(host="0.0.0.0", port=config.PICO_PORT)
 
 
-def test():
+def calibrate():
 
-    import time
     sensor = MoistureSensor()
+    sensor.relay.value(config.RELAY_ON)
+    max_value, min_value = -10**10, 10**10
 
     while True:
-        humid = sensor.get_soil_humidity()
-        print(f"Moisture level: {round(humid, 2)}%")
-        time.sleep(5)
+
+        try:
+            value = sensor.sample()
+            max_value = value if value > max_value else max_value
+            min_value = value if value < min_value else min_value
+
+        except KeyboardInterrupt:
+            sensor.relay.value(config.RELAY_OFF)
+            print(f"CALIBRATION_MIN: {min_value}, CALIBRATION_MAX: {max_value}")
+            break
 
 
 if __name__ == "__main__":
