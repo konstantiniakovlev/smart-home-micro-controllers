@@ -2,6 +2,7 @@ class BoardConfig:
     RELAY_MOISTURE_SENSOR_CTRL_PIN = 0
     RELAY_PUMP_CTRL_PIN = 16
     ADC_PIN = 26
+    CONNECTION_TIMEOUT = 30
 
 
 class RelayConfig:

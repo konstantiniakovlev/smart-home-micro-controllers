@@ -16,5 +16,6 @@ which will open console on the board.
 #### Useful REPL Commands:
 ```Ctrl + D``` - soft reboot\
 ``Ctrl + X`` - exit console\
-```ls /pyboard``` - list directory items
+```ls /pyboard``` - list directory items\
+```cp utils/__init__.py /pyboard/utils``` - copy ``__init__.py`` in ``utils/`` 
 
