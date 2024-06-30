@@ -4,6 +4,7 @@ import sys
 import time
 
 
+from board.logger import logger
 from utils.secrets import SecretsManager
 from utils.constants import BoardConfig
 from utils.constants import MoistureSensorConfig
@@ -88,7 +89,7 @@ class Board:
         self._check_connection()
 
     def _await_connection(self):
-        print("Trying to connect...")
+        logger.info("Connecting board to network...")
         for _ in range(BoardConfig.CONNECTION_TIMEOUT):
             if self.wlan.isconnected():
                 break
@@ -99,7 +100,7 @@ class Board:
             raise Exception("TimeoutError, Board was unable to connect to network.")
         else:
             self.ip_address, _, _, _ = self.wlan.ifconfig()
-            print("Connected.")
+            logger.info("Connected.")
 
     def read_moisture_sensor(self):
         """Separated for calibration purposes

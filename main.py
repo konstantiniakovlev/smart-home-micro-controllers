@@ -1,14 +1,12 @@
-import time
-
-from entity.api import PicoApi
-from entity.board import Board
+from api.application import PicoAPI
+from board.board import Board
 
 pico = Board(device_type="Raspberry Pi Pico")
 pico.connect_wlan()
 
 if __name__ == "__main__":
 
-    api = PicoApi()
+    api = PicoAPI(board=pico)
     api.run(host=pico.ip_address, port=80)
 
     # while True:
