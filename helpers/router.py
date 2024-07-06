@@ -13,8 +13,6 @@ class Router(object):
         self.func = func
 
         def wrapper(*args, **kwargs):
-            print(self.path)
-            print(kwargs)
             if self.method in args or self.method == kwargs.get("method"):
                 if self.path in args or self.path == kwargs.get("endpoint"):
                     return func(*args, **kwargs)

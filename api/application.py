@@ -1,8 +1,10 @@
 import json
 
-from helpers.websocket import WebSocket
-from board.board import Board
 import api.routers as routers
+from board.board import Board
+from helpers.responses import Response
+from helpers.requests import Request
+from helpers.websocket import WebSocket
 
 
 class PicoAPI:
@@ -16,10 +18,16 @@ class PicoAPI:
         while True:
             # todo: address /favicon.ico endpoint request
             connection = socket.accept()
-            request_obj = self._get_request(connection)
-            response = self._handle_request(**request_obj)
-            self._send_response(connection, response)
+            request_json = self._get_request(connection)
+            response = self._handle_request(**request_json)
+            response_json = self._format_response(response)
+            self._send_response(connection, response_json)
             connection.close()
+
+    def _get_request(self, connection):
+        request = self._receive_request(connection)
+        request_json = self._format_request(request)
+        return request_json
 
     @staticmethod
     def _receive_request(connection):
@@ -28,6 +36,7 @@ class PicoAPI:
 
     @staticmethod
     def _format_request(request):
+        # todo: parse and return headers
         headers = {}
         body = {}
 
@@ -40,41 +49,33 @@ class PicoAPI:
                 param, value = param_value.split("=")
                 body[param] = value
 
-        request_obj = {
-            "method": method,
-            "endpoint": endpoint,
-            "headers": headers,
-            "body": body
-        }
-        return request_obj
+        request_obj = Request()
+        request_obj.method = method
+        request_obj.endpoint = endpoint
+        request_obj.headers = headers
+        request_obj.body = body
+
+        return request_obj.json()
 
     def _handle_request(self, *args, **kwargs):
-        req_response = {}
+        response = Response()
+        print(kwargs)
         for func_def in dir(routers):
             if (not func_def.startswith("__") and
-                    # todo: remove redundant functions
-                    func_def not in ["get", "Get", "Board", "Methods", "Routers", "Router"]):
+                    func_def not in ["Actions", "Board", "Response", "Router", "get", "post", "put"]):
                 func = getattr(routers, func_def)
-                # todo: remove
-                print(func_def)
-                print(kwargs.get("endpoint"))
                 if callable(func):
                      func_response = func(*args, **kwargs, board=self.board)
-                     req_response = func_response if func_response is None else req_response
+                     response = response if func_response is None else func_response
 
-        return req_response
+        return response
 
     @staticmethod
-    def _format_response():
-        pass
+    def _format_response(response):
+        return response.json()
 
     @staticmethod
     def _send_response(connection, response):
         response_str = json.dumps(response)
         connection.sendall("HTTP/1.0 200 OK\r\nContent-type: application/json\r\n\r\n")
         connection.sendall(bytes(response_str, "utf-8"))
-
-    def _get_request(self, connection):
-        request = self._receive_request(connection)
-        response_obj = self._format_request(request)
-        return response_obj

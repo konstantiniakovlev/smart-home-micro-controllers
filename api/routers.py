@@ -1,4 +1,5 @@
 from board.board import Board
+from helpers.responses import Response
 from helpers.router import Router
 
 
@@ -7,21 +8,25 @@ class Actions:
     PUMP_WATER = "pump water"
 
 
+response = Response()
+
+
 @Router.get(path="/")
 def welcome_msg(*args, **kwargs):
-    return {
-        "message": "Welcome to the Pico API",
-        "device_name": "Raspberry Pi Pico"
-    }
+    response.message = "Welcome to the Pico API"
+    return response
 
 
 @Router.get(path="/sensor/sample")
 def sample_moisture_sensor(*args, **kwargs):
     board: Board = kwargs.get("board")
-    return {
+    _, percentage = board.sample_humidity()
+    response.activity = {
         "action": Actions.SENSOR_SAMPLE,
-        "humidity": board.sample_humidity()
+        "description": "humidity percentage",
+        "value": percentage
     }
+    return response
 
 
 @Router.get(path="/pump/run")
@@ -31,8 +36,10 @@ def run_pump(*args, **kwargs):
 
     duration = int(request_body.get("duration", 5))
     board.pump_water(duration=duration)
-    return {
+    response.activity = {
         "action": Actions.PUMP_WATER,
-        "duration": duration
+        "description": "duration",
+        "value": duration
     }
+    return response
 
