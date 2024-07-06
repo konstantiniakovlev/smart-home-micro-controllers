@@ -22,7 +22,7 @@ class PicoAPI:
             response = self._handle_request(**request_json)
             response_json = self._format_response(response)
             self._send_response(connection, response_json)
-            connection.close()
+            socket.close(connection)
 
     def _get_request(self, connection):
         request = self._receive_request(connection)
@@ -59,7 +59,6 @@ class PicoAPI:
 
     def _handle_request(self, *args, **kwargs):
         response = Response()
-        print(kwargs)
         for func_def in dir(routers):
             if (not func_def.startswith("__") and
                     func_def not in ["Actions", "Board", "Response", "Router", "get", "post", "put"]):
