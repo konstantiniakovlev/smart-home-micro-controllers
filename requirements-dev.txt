@@ -1,0 +1,2 @@
+adafruit-ampy==1.1.0  # for flashing pico
+rshell==0.0.32

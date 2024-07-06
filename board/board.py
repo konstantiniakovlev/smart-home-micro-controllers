@@ -1,8 +1,11 @@
 import machine
+import network
 import sys
 import time
 
 
+from board.logger import logger
+from utils.secrets import SecretsManager
 from utils.constants import BoardConfig
 from utils.constants import MoistureSensorConfig
 from utils.constants import RelayConfig
@@ -13,15 +16,19 @@ class Board:
     def __init__(
             self,
             identifier: str = None,
-            name: str = None
+            name: str = None,
+            device_type: str = None
     ):
         self.identifier = identifier
         self.name = name
+        self.device_type = device_type
+        self.ip_address = None
 
         self.led = None
         self.relay_pump = None
         self.relay_moisture_sensor = None
         self.moisture_sensor = None
+        self.wlan = None
 
         self._set_up()
         self._set_init_state()
@@ -54,7 +61,7 @@ class Board:
 
         return wrapper
 
-    def handle_error(func):
+    def error_handler(func):
         def wrapper(self, *args, **kwargs):
             try:
                 func_output = func(self, *args, **kwargs)
@@ -63,20 +70,44 @@ class Board:
             except KeyboardInterrupt as e:
                 sys.print_exception(e)
                 self._set_init_state()
-                exit()
+                sys.exit()
 
             except Exception as e:
                 sys.print_exception(e)
                 self._set_init_state()
+                sys.exit()
 
         return wrapper
+
+    @error_handler
+    def connect_wlan(self):
+        self.wlan = network.WLAN(network.STA_IF)
+        self.wlan.active(True)
+        self.wlan.connect(SecretsManager.WIFI_SSID, SecretsManager.WIFI_PASSWORD)
+
+        self._await_connection()
+        self._check_connection()
+
+    def _await_connection(self):
+        logger.info("Connecting board to network...")
+        for _ in range(BoardConfig.CONNECTION_TIMEOUT):
+            if self.wlan.isconnected():
+                break
+            time.sleep(1)
+
+    def _check_connection(self):
+        if not self.wlan.isconnected():
+            raise Exception("TimeoutError, Board was unable to connect to network.")
+        else:
+            self.ip_address, _, _, _ = self.wlan.ifconfig()
+            logger.info("Connected.")
 
     def read_moisture_sensor(self):
         """Separated for calibration purposes
         """
         return self.moisture_sensor.read_u16()
 
-    @handle_error
+    @error_handler
     @led_indicator
     def sample_humidity(self):
         self.relay_moisture_sensor.value(RelayConfig.ON_STATE)
@@ -88,7 +119,7 @@ class Board:
         humid_perc = self._get_humidity_percentage(raw_sample)
         return raw_sample, humid_perc
 
-    @handle_error
+    @error_handler
     @led_indicator
     def pump_water(self, duration: int = 5):
         self.relay_pump.value(RelayConfig.ON_STATE)
