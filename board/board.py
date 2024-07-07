@@ -1,14 +1,13 @@
 import machine
 import network
-import sys
 import time
 
-
+from board.exceptions import error_handler
 from board.logger import logger
-from utils.secrets import SecretsManager
 from utils.constants import BoardConfig
 from utils.constants import MoistureSensorConfig
 from utils.constants import RelayConfig
+from utils.secrets import SecretsManager
 
 
 class Board:
@@ -58,24 +57,6 @@ class Board:
             func_output = func(self, *args, **kwargs)
             self.led.off()
             return func_output
-
-        return wrapper
-
-    def error_handler(func):
-        def wrapper(self, *args, **kwargs):
-            try:
-                func_output = func(self, *args, **kwargs)
-                return func_output
-
-            except KeyboardInterrupt as e:
-                sys.print_exception(e)
-                self._set_init_state()
-                sys.exit()
-
-            except Exception as e:
-                sys.print_exception(e)
-                self._set_init_state()
-                sys.exit()
 
         return wrapper
 
