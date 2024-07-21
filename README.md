@@ -33,3 +33,11 @@ This known as nuking the board. Necessary steps and files needed can be found [h
 ```Ctrl + D``` - soft reboot\
 ``Ctrl + X`` - exit console
 
+### Error handling:
+Currently, the error handling is configured to behave as follows:
+If API has an internal error, the api is (re)run again (``api.run()``) instead of performing soft reboot of the board and
+without initiating Api object.
+
+On the other hand, if an exception is raised in functions belonging to the components of the board (including the board
+itself within ``board.py``), an entire board is softly rebooted.  
+
