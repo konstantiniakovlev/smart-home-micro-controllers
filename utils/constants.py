@@ -12,5 +12,5 @@ class RelayConfig:
 
 
 class MoistureSensorConfig:
-    CALIBRATION_MIN = 31143
+    CALIBRATION_MIN = 39145
     CALIBRATION_MAX = 65535

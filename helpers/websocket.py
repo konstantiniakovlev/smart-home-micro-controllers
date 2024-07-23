@@ -32,7 +32,11 @@ class WebSocket:
         logger.info(f"Client connected from address {address}")
         return connection
 
+    def close(self):
+        self.tcp_socket.close()
+        logger.info("Socket closed.")
+
     @staticmethod
-    def close(connection):
+    def close_connection(connection):
         connection.close()
-        logger.info(f"Connection closed.")
+        logger.info("Connection closed.")
