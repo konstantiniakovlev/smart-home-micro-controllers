@@ -1,6 +1,9 @@
+import json
 import machine
 import network
 import time
+import ubinascii
+import urequests as requests
 
 from board.exceptions import error_handler
 from board.logger import logger
@@ -11,17 +14,16 @@ from utils.secrets import SecretsManager
 
 
 class Board:
+    DEVICE_ID: int = None
+    DEVICE_TYPE: str = None
+    IP_ADDRESS: str = None
+    MAC_ADDRESS: str = None
 
     def __init__(
             self,
-            identifier: str = None,
-            name: str = None,
             device_type: str = None
     ):
-        self.identifier = identifier
-        self.name = name
-        self.device_type = device_type
-        self.ip_address = None
+        self.DEVICE_TYPE = device_type
 
         self.led = None
         self.relay_pump = None
@@ -61,7 +63,7 @@ class Board:
         return wrapper
 
     @error_handler
-    def connect_wlan(self):
+    def connect(self):
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
         self.wlan.connect(SecretsManager.WIFI_SSID, SecretsManager.WIFI_PASSWORD)
@@ -80,13 +82,39 @@ class Board:
         if not self.wlan.isconnected():
             raise Exception("TimeoutError, Board was unable to connect to network.")
         else:
-            self.ip_address, _, _, _ = self.wlan.ifconfig()
+            self.IP_ADDRESS, _, _, _ = self.wlan.ifconfig()
+            self.MAC_ADDRESS = ubinascii.hexlify(self.wlan.config("mac"), ":").decode()
             logger.info("Connected.")
 
     def read_moisture_sensor(self):
         """Separated for calibration purposes
         """
         return self.moisture_sensor.read_u16()
+
+    def register(self):
+        base_url = "http://home-hub.local"
+        port = 5000
+
+        payload = {
+            "mac_address": self.MAC_ADDRESS,
+            "ip_address": self.IP_ADDRESS,
+            "device_type": self.DEVICE_TYPE,
+            "description": "Raspberry Pi Pico for watering plants"
+        }
+
+        response = requests.post(
+            f"{base_url}:{port}/hub/devices/register",
+            headers={"content-type": "application/json"},
+            data=json.dumps(payload)
+        )
+        response_json = response.json()
+        if len(response_json) > 0:
+            self.DEVICE_ID = int(response_json[0]["device_id"])
+
+        if self.DEVICE_ID is None:
+            raise Exception("KeyError, DEVICE_ID was not received.")
+
+        logger.info("Registered.")
 
     @error_handler
     @led_indicator
