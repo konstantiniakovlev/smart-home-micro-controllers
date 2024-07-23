@@ -107,11 +107,15 @@ class Board:
             headers={"content-type": "application/json"},
             data=json.dumps(payload)
         )
-        response_json = response.json()
+
+        if response.status_code in [200, 201]:
+            response_json = response.json()
+        else:
+            raise Exception(f"ConnectionError, Status code: {response.status_code}")
+
         if len(response_json) > 0:
             self.DEVICE_ID = int(response_json[0]["device_id"])
-
-        if self.DEVICE_ID is None:
+        else:
             raise Exception("KeyError, DEVICE_ID was not received.")
 
         logger.info("Registered.")
