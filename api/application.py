@@ -13,18 +13,21 @@ class PicoAPI:
     def __init__(self, board: Board):
         self.board = board
         self.connection = None
+        self.socket = None
 
-    @internal_error_handler
     def run(self, host: str = "0.0.0.0", port: int = 80):
         socket = WebSocket(host, port)
+        self._listen(socket)
 
+    @internal_error_handler
+    def _listen(self, socket):
         while True:
             self.connection = socket.accept()
             request_json = self._get_request(self.connection)
             response = self._handle_request(**request_json)
             response_json = self._format_response(response)
             self._send_response(self.connection, response_json)
-            socket.close(self.connection)
+            socket.close_connection(self.connection)
 
             self.connection = None
 
