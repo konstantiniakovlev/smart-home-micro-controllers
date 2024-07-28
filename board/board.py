@@ -8,9 +8,11 @@ import urequests as requests
 from board.exceptions import error_handler
 from board.logger import logger
 from utils.constants import BoardConfig
+from utils.constants import HubApiConfig
 from utils.constants import MoistureSensorConfig
 from utils.constants import RelayConfig
 from utils.secrets import SecretsManager
+from utils.timestamp import localtime
 
 
 class Board:
@@ -92,8 +94,8 @@ class Board:
         return self.moisture_sensor.read_u16()
 
     def register(self):
-        base_url = "http://home-hub.local"
-        port = 5000
+        base_url = HubApiConfig.URL
+        port = HubApiConfig.PORT
 
         payload = {
             "mac_address": self.MAC_ADDRESS,
@@ -120,9 +122,31 @@ class Board:
 
         logger.info("Registered.")
 
+    def store_measurement(self, tag, value):
+        base_url = HubApiConfig.URL
+        port = HubApiConfig.PORT
+
+        payload = {
+            "time": localtime(),
+            "device_id": self.DEVICE_ID,
+            "sensor_tag": tag,
+            "value": value
+        }
+
+        response = requests.post(
+            f"{base_url}:{port}/hub/measurements",
+            headers={"content-type": "application/json"},
+            data=json.dumps(payload)
+        )
+
+        if response.status_code in [200, 201]:
+            logger.info(f"Measurement stored for {tag}.")
+        else:
+            raise Exception(f"ConnectionError, Status code: {response.status_code}")
+
     @error_handler
     @led_indicator
-    def sample_humidity(self):
+    def sample_humidity(self, dry_run=True):
         self.relay_moisture_sensor.value(RelayConfig.ON_STATE)
         time.sleep(RelayConfig.DELAY)
 
@@ -130,6 +154,13 @@ class Board:
         self.relay_moisture_sensor.value(RelayConfig.OFF_STATE)
 
         humid_perc = self._get_humidity_percentage(raw_sample)
+
+        # todo: test this
+        # todo: create a database table with tags and create an endpoint in api for them.
+        if not dry_run:
+            self.store_measurement(tag="humidity_raw", value=raw_sample)
+            self.store_measurement(tag="humidity_percentage", value=humid_perc)
+
         return raw_sample, humid_perc
 
     @error_handler
