@@ -11,6 +11,7 @@ from utils.constants import BoardConfig
 from utils.constants import HubApiConfig
 from utils.constants import MoistureSensorConfig
 from utils.constants import RelayConfig
+from utils.constants import SensorNames
 from utils.secrets import SecretsManager
 from utils.timestamp import localtime
 
@@ -122,6 +123,28 @@ class Board:
 
         logger.info("Registered.")
 
+    @staticmethod
+    def get_sensor_tag(sensor_name: str):
+        base_url = HubApiConfig.URL
+        port = HubApiConfig.PORT
+
+        payload = {"name_fiter": sensor_name}
+
+        response = requests.get(
+            f"{base_url}:{port}/hub/tags",
+            headers={"content-type": "application/json"},
+            data=json.dumps(payload)
+        )
+
+        if response.status_code in [200, 201]:
+            response_json = response.json()
+        else:
+            raise Exception(f"ConnectionError, Status code: {response.status_code}")
+
+        if len(response_json) > 0:
+            return response_json[0]["tag"]
+        return None
+
     def store_measurement(self, tag, value):
         base_url = HubApiConfig.URL
         port = HubApiConfig.PORT
@@ -156,10 +179,12 @@ class Board:
         humid_perc = self._get_humidity_percentage(raw_sample)
 
         # todo: test this
-        # todo: create a database table with tags and create an endpoint in api for them.
         if not dry_run:
-            self.store_measurement(tag="humidity_raw", value=raw_sample)
-            self.store_measurement(tag="humidity_percentage", value=humid_perc)
+            ms_tag = self.get_sensor_tag(sensor_name=SensorNames.MOISTURE_SENSOR)
+            ms_tag_calc = self.get_sensor_tag(sensor_name=SensorNames.MOISTURE_SENSOR_CALC)
+
+            self.store_measurement(tag=ms_tag, value=raw_sample)
+            self.store_measurement(tag=ms_tag_calc, value=humid_perc)
 
         return raw_sample, humid_perc
 
