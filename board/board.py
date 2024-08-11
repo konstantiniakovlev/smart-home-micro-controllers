@@ -128,7 +128,7 @@ class Board:
         base_url = HubApiConfig.URL
         port = HubApiConfig.PORT
 
-        payload = {"name_fiter": sensor_name}
+        payload = {"name_filter": sensor_name}
 
         response = requests.get(
             f"{base_url}:{port}/hub/tags",
