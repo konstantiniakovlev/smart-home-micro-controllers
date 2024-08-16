@@ -8,9 +8,13 @@ import urequests as requests
 from board.exceptions import error_handler
 from board.logger import logger
 from utils.constants import BoardConfig
+from utils.constants import HubApiConfig
 from utils.constants import MoistureSensorConfig
 from utils.constants import RelayConfig
+from utils.constants import SensorNames
 from utils.secrets import SecretsManager
+from utils.timestamp import localtime
+from utils.urllib import encode_params
 
 
 class Board:
@@ -92,8 +96,8 @@ class Board:
         return self.moisture_sensor.read_u16()
 
     def register(self):
-        base_url = "http://home-hub.local"
-        port = 5000
+        base_url = HubApiConfig.URL
+        port = HubApiConfig.PORT
 
         payload = {
             "mac_address": self.MAC_ADDRESS,
@@ -120,9 +124,52 @@ class Board:
 
         logger.info("Registered.")
 
+    @staticmethod
+    def get_sensor_tag(sensor_name: str):
+        base_url = HubApiConfig.URL
+        port = HubApiConfig.PORT
+
+        params = {"name_filter": sensor_name}
+
+        response = requests.get(
+            f"{base_url}:{port}/hub/tags/?{encode_params(params)}",
+            headers={"content-type": "application/json"},
+        )
+
+        if response.status_code in [200, 201]:
+            response_json = response.json()
+        else:
+            raise Exception(f"ConnectionError, Status code: {response.status_code}")
+
+        if len(response_json) > 0:
+            return response_json[0]["tag"]
+        return None
+
+    def store_measurement(self, tag, value):
+        base_url = HubApiConfig.URL
+        port = HubApiConfig.PORT
+
+        payload = {
+            "time": localtime(),
+            "device_id": self.DEVICE_ID,
+            "sensor_tag": tag,
+            "value": value
+        }
+
+        response = requests.post(
+            f"{base_url}:{port}/hub/measurements/",
+            headers={"content-type": "application/json"},
+            data=json.dumps(payload)
+        )
+
+        if response.status_code in [200, 201]:
+            logger.info(f"Measurement stored for {tag}.")
+        else:
+            raise Exception(f"ConnectionError, Status code: {response.status_code}")
+
     @error_handler
     @led_indicator
-    def sample_humidity(self):
+    def sample_humidity(self, dry_run=True):
         self.relay_moisture_sensor.value(RelayConfig.ON_STATE)
         time.sleep(RelayConfig.DELAY)
 
@@ -130,6 +177,14 @@ class Board:
         self.relay_moisture_sensor.value(RelayConfig.OFF_STATE)
 
         humid_perc = self._get_humidity_percentage(raw_sample)
+
+        if not dry_run:
+            ms_tag = self.get_sensor_tag(sensor_name=SensorNames.MOISTURE_SENSOR)
+            ms_tag_calc = self.get_sensor_tag(sensor_name=SensorNames.MOISTURE_SENSOR_CALC)
+
+            self.store_measurement(tag=ms_tag, value=raw_sample)
+            self.store_measurement(tag=ms_tag_calc, value=humid_perc)
+
         return raw_sample, humid_perc
 
     @error_handler

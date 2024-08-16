@@ -14,3 +14,13 @@ class RelayConfig:
 class MoistureSensorConfig:
     CALIBRATION_MIN = 39145
     CALIBRATION_MAX = 65535
+
+
+class HubApiConfig:
+    URL = "http://home-hub.local"
+    PORT = 5000
+
+
+class SensorNames:
+    MOISTURE_SENSOR = "Soil Moisture Sensor"
+    MOISTURE_SENSOR_CALC = "Soil Moisture Sensor Calculated"

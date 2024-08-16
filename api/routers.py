@@ -20,7 +20,7 @@ def welcome_msg(*args, **kwargs):
 @Router.get(path="/sensor/sample")
 def sample_moisture_sensor(*args, **kwargs):
     board: Board = kwargs.get("board")
-    _, percentage = board.sample_humidity()
+    _, percentage = board.sample_humidity(dry_run=False)
     response.activity = {
         "action": Actions.SENSOR_SAMPLE,
         "description": "humidity percentage",
