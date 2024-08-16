@@ -26,8 +26,8 @@ This known as nuking the board. Necessary steps and files needed can be found [h
 
 ### Useful rshell commands:
 ```ls /pyboard``` - list directory items\
-```cp utils/__init__.py /pyboard/utils``` - copy ``__init__.py`` in ``utils/`` 
-
+```cp utils/__init__.py /pyboard/utils``` - copy ``__init__.py`` in ``utils/``\
+```rm -rf pyboard/*``` - remove all directories and files
 
 ### Useful REPL Commands:
 ```Ctrl + D``` - soft reboot\
