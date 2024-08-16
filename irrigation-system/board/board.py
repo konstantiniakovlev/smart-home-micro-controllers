@@ -25,7 +25,7 @@ class Board:
 
     def __init__(
             self,
-            device_type: str = None
+            device_type: str = "Raspberry Pi Pico"
     ):
         self.DEVICE_TYPE = device_type
 
