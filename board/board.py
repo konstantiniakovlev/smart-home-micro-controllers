@@ -14,6 +14,7 @@ from utils.constants import RelayConfig
 from utils.constants import SensorNames
 from utils.secrets import SecretsManager
 from utils.timestamp import localtime
+from utils.urllib import encode_params
 
 
 class Board:
@@ -128,12 +129,11 @@ class Board:
         base_url = HubApiConfig.URL
         port = HubApiConfig.PORT
 
-        payload = {"name_filter": sensor_name}
+        params = {"name_filter": sensor_name}
 
         response = requests.get(
-            f"{base_url}:{port}/hub/tags",
+            f"{base_url}:{port}/hub/tags/?{encode_params(params)}",
             headers={"content-type": "application/json"},
-            data=json.dumps(payload)
         )
 
         if response.status_code in [200, 201]:
@@ -157,7 +157,7 @@ class Board:
         }
 
         response = requests.post(
-            f"{base_url}:{port}/hub/measurements",
+            f"{base_url}:{port}/hub/measurements/",
             headers={"content-type": "application/json"},
             data=json.dumps(payload)
         )
@@ -178,7 +178,6 @@ class Board:
 
         humid_perc = self._get_humidity_percentage(raw_sample)
 
-        # todo: test this
         if not dry_run:
             ms_tag = self.get_sensor_tag(sensor_name=SensorNames.MOISTURE_SENSOR)
             ms_tag_calc = self.get_sensor_tag(sensor_name=SensorNames.MOISTURE_SENSOR_CALC)
