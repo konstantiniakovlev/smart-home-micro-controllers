@@ -10,6 +10,7 @@ from utils.constants import Tags
 from utils.timestamp import localtime
 
 
+SAMPLING_FREQ = 30
 BASE_URL = HubApiConfig.URL
 PORT = HubApiConfig.PORT
 
@@ -28,7 +29,7 @@ for _ in range(30):
     pico.bme.sample()
 
 while True:
-    time.sleep(30)
+    time.sleep(SAMPLING_FREQ)
 
     temperature, pressure, humidity = pico.bme.sample()
     sample_dt_str = localtime()
