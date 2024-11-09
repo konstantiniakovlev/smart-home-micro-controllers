@@ -9,12 +9,10 @@ def error_handler(func):
 
         except KeyboardInterrupt as e:
             sys.print_exception(e)
-            # self._set_init_state()
             sys.exit()
 
         except Exception as e:
             sys.print_exception(e)
-            self._set_init_state()
             raise e
 
     return wrapper
