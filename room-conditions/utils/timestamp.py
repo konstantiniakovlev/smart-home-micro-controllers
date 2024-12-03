@@ -1,9 +1,4 @@
-import ntptime
 import time
-
-
-ntptime.host = 'pool.ntp.org'
-ntptime.settime()
 
 
 def localtime():

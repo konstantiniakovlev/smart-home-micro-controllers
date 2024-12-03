@@ -6,7 +6,6 @@ class BoardConfig:
 
 class HubApiConfig:
     URL = "http://home-hub.local"
-    PORT = 5000
 
 
 class Tags:
