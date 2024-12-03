@@ -12,10 +12,10 @@ from utils.timestamp import localtime
 
 SAMPLING_FREQ = 30
 BASE_URL = HubApiConfig.URL
+RECONNECT = False
 
 url = f"{BASE_URL}/hub/measurements/"
 tags = [Tags.TEMPERATURE_TAG, Tags.PRESSURE_TAG, Tags.HUMIDITY_TAG]
-
 
 pico = Board()
 pico.connect()
@@ -28,8 +28,7 @@ for _ in range(30):
     pico.bme.sample()
 
 while True:
-    time.sleep(SAMPLING_FREQ)
-
+    RECONNECT = False
     temperature, pressure, humidity = pico.bme.sample()
     sample_dt_str = localtime()
 
@@ -47,9 +46,17 @@ while True:
             data=json.dumps(payload)
         )
 
-        if response.status_code not in [200, 201]:
-            raise Exception(f"ConnectionError, Status code: {response.status_code}")
+        if response.status_code in [408, 422]:
+            RECONNECT = True
+            pico.connect()
+            pico.register()
+            break
+        elif response.status_code not in [200, 201]:
+            raise Exception(f"RequestError, Status code: {response.status_code}")
         # logger.info(f"Measurement stored for {tag}.")
 
         # free up memory after HTTP requests
         gc.collect()
+
+    if not RECONNECT:
+        time.sleep(SAMPLING_FREQ)

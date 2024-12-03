@@ -1,7 +1,7 @@
 class BoardConfig:
     SCL_PIN = 17
     SDA_PIN = 16
-    CONNECTION_TIMEOUT = 30
+    CONNECTION_TIMEOUT = 24 * 60 * 60
 
 
 class HubApiConfig:
