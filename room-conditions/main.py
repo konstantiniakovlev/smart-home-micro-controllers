@@ -1,3 +1,4 @@
+import sys
 import gc
 import json
 import time
@@ -12,9 +13,8 @@ from utils.timestamp import localtime
 
 SAMPLING_FREQ = 30
 BASE_URL = HubApiConfig.URL
-PORT = HubApiConfig.PORT
 
-url = f"{BASE_URL}:{PORT}/hub/measurements/"
+url = f"{BASE_URL}/hub/measurements/"
 tags = [Tags.TEMPERATURE_TAG, Tags.PRESSURE_TAG, Tags.HUMIDITY_TAG]
 
 
@@ -48,10 +48,9 @@ while True:
             data=json.dumps(payload)
         )
 
-        if response.status_code in [200, 201]:
-            logger.info(f"Measurement stored for {tag}.")
-        else:
+        if response.status_code not in [200, 201]:
             raise Exception(f"ConnectionError, Status code: {response.status_code}")
+        # logger.info(f"Measurement stored for {tag}.")
 
         # free up memory after HTTP requests
         gc.collect()

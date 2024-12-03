@@ -1,6 +1,7 @@
 import json
 import machine
 import network
+import ntptime
 import time
 import ubinascii
 import urequests as requests
@@ -27,6 +28,7 @@ class Board:
 
         self.wlan = None
         self.bme = None
+        self.led = None
 
         self._set_up()
 
@@ -39,6 +41,8 @@ class Board:
         )
 
         self.bme = BME280(i2c=i2c, address=0x77)
+        self.led = machine.Pin("LED", machine.Pin.OUT)
+        self.led.off()
 
     @error_handler
     def connect(self):
@@ -48,6 +52,7 @@ class Board:
 
         self._await_connection()
         self._check_connection()
+        self._sync_network_time()
 
     def _await_connection(self):
         logger.info("Connecting board to network...")
@@ -64,9 +69,12 @@ class Board:
             self.MAC_ADDRESS = ubinascii.hexlify(self.wlan.config("mac"), ":").decode()
             logger.info("Connected.")
 
+    def _sync_network_time(self):
+        ntptime.host = 'pool.ntp.org'
+        ntptime.settime()
+
     def register(self):
         base_url = HubApiConfig.URL
-        port = HubApiConfig.PORT
 
         payload = {
             "mac_address": self.MAC_ADDRESS,
@@ -76,7 +84,7 @@ class Board:
         }
 
         response = requests.post(
-            f"{base_url}:{port}/hub/devices/register",
+            f"{base_url}/hub/devices/register",
             headers={"content-type": "application/json"},
             data=json.dumps(payload)
         )
@@ -92,3 +100,12 @@ class Board:
             raise Exception("KeyError, DEVICE_ID was not received.")
 
         logger.info("Registered.")
+
+    def led_indicator(func):
+        def wrapper(self, *args, **kwargs):
+            self.led.on()
+            func_output = func(self, *args, **kwargs)
+            self.led.off()
+            return func_output
+
+        return wrapper
