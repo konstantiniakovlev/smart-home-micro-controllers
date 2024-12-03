@@ -1,4 +1,3 @@
-import sys
 import gc
 import json
 import time
