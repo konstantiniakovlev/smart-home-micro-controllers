@@ -1,62 +1,56 @@
 import gc
-import json
 import time
-import urequests as requests
 
+from helpers.home_hub_client import HomeHubClient
+from helpers.exceptions import StatusError
 from board.board import Board
 from board.logger import logger
-from utils.constants import HubApiConfig
 from utils.constants import Tags
 from utils.timestamp import localtime
 
 
 SAMPLING_FREQ = 30
-BASE_URL = HubApiConfig.URL
-RECONNECT = False
 
-url = f"{BASE_URL}/hub/measurements/"
-tags = [Tags.TEMPERATURE_TAG, Tags.PRESSURE_TAG, Tags.HUMIDITY_TAG]
 
-pico = Board()
-pico.connect()
-pico.register()
+def set_up_pico():
+    pico = Board()
+    pico.connect()
+    pico.register()
 
-# warm up sensor
-logger.info("Warming up sensor...")
-for _ in range(30):
-    time.sleep(1)
-    pico.bme.sample()
+    return pico
 
-while True:
-    RECONNECT = False
-    temperature, pressure, humidity = pico.bme.sample()
-    sample_dt_str = localtime()
 
-    for tag, value in zip(tags, [temperature, pressure, humidity]):
+def main():
+    tags = [Tags.TEMPERATURE_TAG, Tags.PRESSURE_TAG, Tags.HUMIDITY_TAG]
 
-        payload = {
-            "time": sample_dt_str,
-            "device_id": pico.DEVICE_ID,
-            "sensor_tag": tag,
-            "value": value
-        }
-        response = requests.post(
-            url,
-            headers={"content-type": "application/json"},
-            data=json.dumps(payload)
-        )
+    hub_client = HomeHubClient()
+    pico = set_up_pico()
 
-        if response.status_code in [408, 422]:
-            RECONNECT = True
-            pico.connect()
-            pico.register()
-            break
-        elif response.status_code not in [200, 201]:
-            raise Exception(f"RequestError, Status code: {response.status_code}")
-        # logger.info(f"Measurement stored for {tag}.")
+    while True:
+        temperature, pressure, humidity = pico.bme.sample()
+        sample_dt_str = localtime()
 
-        # free up memory after HTTP requests
-        gc.collect()
+        for tag, value in zip(tags, [temperature, pressure, humidity]):
 
-    if not RECONNECT:
+            payload = {
+                "time": sample_dt_str,
+                "device_id": pico.DEVICE_ID,
+                "sensor_tag": tag,
+                "value": value
+            }
+            try:
+                hub_client.store_measurement(payload)
+            except StatusError as e:
+                raise StatusError(e)
+            except Exception as e:
+                print(e)
+                pico = set_up_pico()
+                break
+
+            # free up memory after HTTP requests
+            gc.collect()
         time.sleep(SAMPLING_FREQ)
+
+
+if __name__ == "__main__":
+    main()

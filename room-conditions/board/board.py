@@ -1,16 +1,14 @@
-import json
 import machine
 import network
 import ntptime
 import time
 import ubinascii
-import urequests as requests
 
 from board.exceptions import error_handler
 from board.logger import logger
 from helpers.custom_bme280_driver import BME280
+from helpers.home_hub_client import HomeHubClient
 from utils.constants import BoardConfig
-from utils.constants import HubApiConfig
 from utils.secrets import SecretsManager
 
 
@@ -74,28 +72,17 @@ class Board:
         ntptime.settime()
 
     def register(self):
-        base_url = HubApiConfig.URL
-
         payload = {
             "mac_address": self.MAC_ADDRESS,
             "ip_address": self.IP_ADDRESS,
             "device_type": self.DEVICE_TYPE,
             "description": "Raspberry Pi Pico for measuring temperature, pressure, and humidity."
         }
+        hub_client = HomeHubClient()
+        response = hub_client.register_device(payload)
 
-        response = requests.post(
-            f"{base_url}/hub/devices/register",
-            headers={"content-type": "application/json"},
-            data=json.dumps(payload)
-        )
-
-        if response.status_code in [200, 201]:
-            response_json = response.json()
-        else:
-            raise Exception(f"ConnectionError, Status code: {response.status_code}")
-
-        if len(response_json) > 0:
-            self.DEVICE_ID = int(response_json[0]["device_id"])
+        if len(response) > 0:
+            self.DEVICE_ID = int(response[0]["device_id"])
         else:
             raise Exception("KeyError, DEVICE_ID was not received.")
 
