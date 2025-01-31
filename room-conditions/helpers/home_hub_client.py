@@ -1,6 +1,7 @@
 import json
 import urequests as requests
 
+from helpers.exceptions import StatusError
 from utils.constants import HubApiConfig
 
 
@@ -30,10 +31,12 @@ class HomeHubClient:
             )
             self.validate_response(response)
             return response.json()
+        except StatusError as e:
+            raise StatusError(e)
         except Exception as e:
             raise Exception(e)
 
     @staticmethod
     def validate_response(response):
         if response.status_code not in [200, 201]:
-            raise Exception(f"ConnectionError, Status code: {response.status_code}")
+            raise StatusError(f"Status code: {response.status_code}")

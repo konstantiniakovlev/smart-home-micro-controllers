@@ -7,7 +7,7 @@ import ubinascii
 from board.exceptions import error_handler
 from board.logger import logger
 from helpers.custom_bme280_driver import BME280
-from main import hub_client
+from helpers.home_hub_client import HomeHubClient
 from utils.constants import BoardConfig
 from utils.secrets import SecretsManager
 
@@ -78,7 +78,7 @@ class Board:
             "device_type": self.DEVICE_TYPE,
             "description": "Raspberry Pi Pico for measuring temperature, pressure, and humidity."
         }
-
+        hub_client = HomeHubClient()
         response = hub_client.register_device(payload)
 
         if len(response) > 0:

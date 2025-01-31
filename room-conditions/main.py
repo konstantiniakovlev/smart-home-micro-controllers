@@ -2,6 +2,7 @@ import gc
 import time
 
 from helpers.home_hub_client import HomeHubClient
+from helpers.exceptions import StatusError
 from board.board import Board
 from board.logger import logger
 from utils.constants import Tags
@@ -39,7 +40,10 @@ def main():
             }
             try:
                 hub_client.store_measurement(payload)
-            except Exception:
+            except StatusError as e:
+                raise StatusError(e)
+            except Exception as e:
+                print(e)
                 pico = set_up_pico()
                 break
 
