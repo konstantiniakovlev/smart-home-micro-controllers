@@ -2,53 +2,64 @@ import gc
 import time
 
 from helpers.home_hub_client import HomeHubClient
+from helpers.exceptions import SampleError
 from helpers.exceptions import StatusError
 from board.board import Board
-from board.logger import logger
 from utils.constants import Tags
 from utils.timestamp import localtime
 
 
+DEVICE_ID = None
 SAMPLING_FREQ = 30
 
 
-def set_up_pico():
+def set_up() -> Board:
     pico = Board()
     pico.connect()
     pico.register()
 
+    global DEVICE_ID
+    DEVICE_ID = pico.DEVICE_ID
+
     return pico
 
 
-def main():
+def sample(pico: Board) -> (list[str], tuple[float], str):
     tags = [Tags.TEMPERATURE_TAG, Tags.PRESSURE_TAG, Tags.HUMIDITY_TAG]
 
-    hub_client = HomeHubClient()
-    pico = set_up_pico()
+    try:
+        temperature, pressure, humidity = pico.bme.sample()
+        sample_time = localtime()
+    except Exception as e:
+        raise SampleError(e)
+
+    return tags, (temperature, pressure, humidity), sample_time
+
+
+def post_results(client: HomeHubClient, tags: list[str], values: tuple[float], sample_time: str):
+    for tag, value in zip(tags, values):
+        payload = {
+            "time": sample_time,
+            "device_id": DEVICE_ID,
+            "sensor_tag": tag,
+            "value": value
+        }
+        client.store_measurement(payload)
+
+
+def main():
+    client = HomeHubClient()
+    pico = set_up()
 
     while True:
-        temperature, pressure, humidity = pico.bme.sample()
-        sample_dt_str = localtime()
+        try:
+            tags, values, sample_time = sample(pico)
+            post_results(client, tags, values, sample_time)
+        except (StatusError, SampleError) as e:
+            pico = set_up()
+            continue
 
-        for tag, value in zip(tags, [temperature, pressure, humidity]):
-
-            payload = {
-                "time": sample_dt_str,
-                "device_id": pico.DEVICE_ID,
-                "sensor_tag": tag,
-                "value": value
-            }
-            try:
-                hub_client.store_measurement(payload)
-            except StatusError as e:
-                raise StatusError(e)
-            except Exception as e:
-                print(e)
-                pico = set_up_pico()
-                break
-
-            # free up memory after HTTP requests
-            gc.collect()
+        gc.collect()  # free up memory after HTTP requests
         time.sleep(SAMPLING_FREQ)
 
 

@@ -1,7 +1,7 @@
 import sys
 
 
-def error_handler(func):
+def connection_error_handler(func):
     def wrapper(self, *args, **kwargs):
         try:
             func_output = func(self, *args, **kwargs)
