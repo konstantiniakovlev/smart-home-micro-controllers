@@ -61,6 +61,4 @@ class Logger:
             self.CRITICAL: 4
         }
 
-        if log_criticality_level[level] >= log_criticality_level[self.LOG_LEVEL]:
-            return True
-        return False
+        return log_criticality_level[level] >= log_criticality_level[self.LOG_LEVEL]
