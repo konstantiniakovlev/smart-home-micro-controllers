@@ -57,6 +57,7 @@ def main():
         try:
             tags, values, sample_time = sample(pico)
             post_results(client, tags, values, sample_time)
+            logger.debug("Sampled and saved results.")
         except (StatusError, SampleError) as e:
             pico = set_up()
             continue
