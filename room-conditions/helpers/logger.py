@@ -8,8 +8,7 @@ class Logger:
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
     TEMPLATE = "{timestamp} [{level}]: {message}"
-
-    LOG_LEVEL = None
+    LOG_LEVEL = INFO
 
     def log(func):
 
@@ -50,9 +49,6 @@ class Logger:
         self.LOG_LEVEL = level
 
     def _valid_level(self, level):
-        if self.LOG_LEVEL is None:
-            return False
-
         log_criticality_level = {
             self.DEBUG: 0,
             self.INFO: 1,
