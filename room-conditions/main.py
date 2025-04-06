@@ -1,10 +1,12 @@
 import gc
+import machine
 import time
 
 from helpers.home_hub_client import HomeHubClient
 from helpers.exceptions import SampleError
 from helpers.exceptions import StatusError
 from board.board import Board
+from board.logger import logger
 from utils.constants import Tags
 from utils.timestamp import localtime
 
@@ -58,6 +60,9 @@ def main():
         except (StatusError, SampleError) as e:
             pico = set_up()
             continue
+        except Exception as e: 
+            logger.critical(f"Critical Error: {e}. Resetting the board.")
+            machine.reset()
 
         gc.collect()  # free up memory after HTTP requests
         time.sleep(SAMPLING_FREQ)
