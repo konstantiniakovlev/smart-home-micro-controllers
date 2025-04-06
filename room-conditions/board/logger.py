@@ -1,4 +1,4 @@
 from helpers.logger import Logger
 
 logger = Logger()
-logger.set_level(logger.DEBUG)
+logger.set_level(logger.CRITICAL)
