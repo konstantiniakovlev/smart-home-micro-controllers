@@ -53,6 +53,8 @@ class Board:
         self._await_connection()
         self._check_connection()
         sync_network_time()
+        # todo: TimeoutError can be thrown if failed to sync
+        #  the network time which is not covered by exception handling
 
     def _await_connection(self):
         logger.debug("Connecting board to network...")
