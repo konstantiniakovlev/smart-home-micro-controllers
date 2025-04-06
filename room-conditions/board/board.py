@@ -1,6 +1,5 @@
 import machine
 import network
-import ntptime
 import time
 import ubinascii
 
@@ -12,6 +11,7 @@ from helpers.exceptions import RegistrationError
 from helpers.home_hub_client import HomeHubClient
 from utils.constants import BoardConfig
 from utils.secrets import SecretsManager
+from utils.timestamp import sync_network_time
 
 
 class Board:
@@ -52,7 +52,7 @@ class Board:
 
         self._await_connection()
         self._check_connection()
-        self._sync_network_time()
+        sync_network_time()
 
     def _await_connection(self):
         logger.debug("Connecting board to network...")
@@ -68,10 +68,6 @@ class Board:
             self.IP_ADDRESS, _, _, _ = self.wlan.ifconfig()
             self.MAC_ADDRESS = ubinascii.hexlify(self.wlan.config("mac"), ":").decode()
             logger.debug("Connected.")
-
-    def _sync_network_time(self):
-        ntptime.host = 'pool.ntp.org'
-        ntptime.settime()
 
     def register(self):
         payload = {
