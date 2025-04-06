@@ -14,9 +14,6 @@ from utils.constants import BoardConfig
 from utils.secrets import SecretsManager
 
 
-logger.set_level(logger.DEBUG)
-
-
 class Board:
     DEVICE_ID: int = None
     DEVICE_TYPE: str = None
