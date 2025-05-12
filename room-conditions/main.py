@@ -19,15 +19,8 @@ SAMPLING_FREQ = 30
 
 def set_up() -> Board:
     pico = Board()
-
-    while True:
-        try:
-            pico.connect()
-            pico.register()
-            break
-
-        except (NetworkError, RegistrationError):
-            continue
+    pico.connect()
+    pico.register()
 
     global DEVICE_ID
     DEVICE_ID = pico.DEVICE_ID
@@ -59,25 +52,28 @@ def post_results(client: HomeHubClient, tags: list[str], values: tuple[float], s
 
 
 def main():
-    client = HomeHubClient()
-    pico = set_up()
-
     while True:
-        try:
-            tags, values, sample_time = sample(pico)
-            post_results(client, tags, values, sample_time)
-            logger.debug("Sampled and saved results.")
-
-            gc.collect()  # free up memory after HTTP requests
-            time.sleep(SAMPLING_FREQ)
-
-        except (StatusError, SampleError):
+        try: 
+            client = HomeHubClient()
             pico = set_up()
+        except (NetworkError, RegistrationError):
             continue
 
-        except Exception as e:
-            logger.critical(f"Critical Error: {e}. Resetting the board.")
-            machine.reset()
+        while True:
+            try:
+                tags, values, sample_time = sample(pico)
+                post_results(client, tags, values, sample_time)
+                logger.debug("Sampled and saved results.")
+
+                gc.collect()  # free up memory after HTTP requests
+                time.sleep(SAMPLING_FREQ)
+
+            except (StatusError, SampleError):
+                break
+
+            except Exception as e:
+                logger.critical(f"Critical Error: {e}. Resetting the board.")
+                machine.reset()
 
 
 if __name__ == "__main__":
