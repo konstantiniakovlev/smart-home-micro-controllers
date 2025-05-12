@@ -3,6 +3,8 @@ import machine
 import time
 
 from helpers.home_hub_client import HomeHubClient
+from helpers.exceptions import NetworkError
+from helpers.exceptions import RegistrationError
 from helpers.exceptions import SampleError
 from helpers.exceptions import StatusError
 from board.board import Board
@@ -17,8 +19,15 @@ SAMPLING_FREQ = 30
 
 def set_up() -> Board:
     pico = Board()
-    pico.connect()
-    pico.register()
+
+    while True:
+        try:
+            pico.connect()
+            pico.register()
+            break
+
+        except (NetworkError, RegistrationError):
+            continue
 
     global DEVICE_ID
     DEVICE_ID = pico.DEVICE_ID
@@ -58,15 +67,17 @@ def main():
             tags, values, sample_time = sample(pico)
             post_results(client, tags, values, sample_time)
             logger.debug("Sampled and saved results.")
-        except (StatusError, SampleError) as e:
+
+            gc.collect()  # free up memory after HTTP requests
+            time.sleep(SAMPLING_FREQ)
+
+        except (StatusError, SampleError):
             pico = set_up()
             continue
-        except Exception as e: 
+
+        except Exception as e:
             logger.critical(f"Critical Error: {e}. Resetting the board.")
             machine.reset()
-
-        gc.collect()  # free up memory after HTTP requests
-        time.sleep(SAMPLING_FREQ)
 
 
 if __name__ == "__main__":

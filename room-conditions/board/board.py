@@ -7,6 +7,7 @@ from board.exceptions import connection_error_handler
 from board.logger import logger
 from helpers.custom_bme280_driver import BME280
 from helpers.exceptions import NetworkError
+from helpers.exceptions import StatusError
 from helpers.exceptions import RegistrationError
 from helpers.home_hub_client import HomeHubClient
 from utils.constants import BoardConfig
@@ -79,10 +80,15 @@ class Board:
             "description": "Raspberry Pi Pico for measuring temperature, pressure, and humidity."
         }
         hub_client = HomeHubClient()
-        response = hub_client.register_device(payload)
 
-        if len(response) == 0:
+        try:
+            response = hub_client.register_device(payload)
+        except StatusError as e:
+            raise RegistrationError(f"{e} was raise during registration.")
+
+        if len(response) == 0 or "device_id" not in response[0]:
             raise RegistrationError("DEVICE_ID was not received.")
+
         self.DEVICE_ID = int(response[0]["device_id"])
 
         logger.debug("Registered.")
