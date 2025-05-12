@@ -1,3 +1,4 @@
+import ntptime
 import time
 
 
@@ -9,3 +10,8 @@ def localtime():
         year, month, day, hour, minute, second
     )
     return dt_str
+
+
+def sync_network_time():
+    ntptime.host = 'pool.ntp.org'
+    ntptime.settime()

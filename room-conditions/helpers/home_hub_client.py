@@ -8,6 +8,7 @@ from utils.constants import HubApiConfig
 class HomeHubClient:
 
     base_url = HubApiConfig.URL
+    headers = {"content-type": "application/json"}
 
     def __init__(self):
         self.register_device_url = f"{self.base_url}/hub/devices/register/"
@@ -16,25 +17,20 @@ class HomeHubClient:
     def register_device(self, payload):
         response = requests.post(
             self.register_device_url,
-            headers={"content-type": "application/json"},
+            headers=self.headers,
             data=json.dumps(payload)
         )
         self.validate_response(response)
         return response.json()
 
     def store_measurement(self, payload):
-        try:
-            response = requests.post(
-                self.store_measurement_url,
-                headers={"content-type": "application/json"},
-                data=json.dumps(payload)
-            )
-            self.validate_response(response)
-            return response.json()
-        except StatusError as e:
-            raise StatusError(e)
-        except Exception as e:
-            raise Exception(e)
+        response = requests.post(
+            self.store_measurement_url,
+            headers=self.headers,
+            data=json.dumps(payload)
+        )
+        self.validate_response(response)
+        return response.json()
 
     @staticmethod
     def validate_response(response):

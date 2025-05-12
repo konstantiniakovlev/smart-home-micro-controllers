@@ -1,15 +1,17 @@
 import machine
 import network
-import ntptime
 import time
 import ubinascii
 
-from board.exceptions import error_handler
+from board.exceptions import connection_error_handler
 from board.logger import logger
 from helpers.custom_bme280_driver import BME280
+from helpers.exceptions import NetworkError
+from helpers.exceptions import RegistrationError
 from helpers.home_hub_client import HomeHubClient
 from utils.constants import BoardConfig
 from utils.secrets import SecretsManager
+from utils.timestamp import sync_network_time
 
 
 class Board:
@@ -42,7 +44,7 @@ class Board:
         self.led = machine.Pin("LED", machine.Pin.OUT)
         self.led.off()
 
-    @error_handler
+    @connection_error_handler
     def connect(self):
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
@@ -50,10 +52,12 @@ class Board:
 
         self._await_connection()
         self._check_connection()
-        self._sync_network_time()
+        sync_network_time()
+        # todo: TimeoutError can be thrown if failed to sync
+        #  the network time which is not covered by exception handling
 
     def _await_connection(self):
-        logger.info("Connecting board to network...")
+        logger.debug("Connecting board to network...")
         for _ in range(BoardConfig.CONNECTION_TIMEOUT):
             if self.wlan.isconnected():
                 break
@@ -61,15 +65,11 @@ class Board:
 
     def _check_connection(self):
         if not self.wlan.isconnected():
-            raise Exception("TimeoutError, Board was unable to connect to network.")
+            raise NetworkError("TimeoutError, Board was unable to connect to network.")
         else:
             self.IP_ADDRESS, _, _, _ = self.wlan.ifconfig()
             self.MAC_ADDRESS = ubinascii.hexlify(self.wlan.config("mac"), ":").decode()
-            logger.info("Connected.")
-
-    def _sync_network_time(self):
-        ntptime.host = 'pool.ntp.org'
-        ntptime.settime()
+            logger.debug("Connected.")
 
     def register(self):
         payload = {
@@ -81,18 +81,8 @@ class Board:
         hub_client = HomeHubClient()
         response = hub_client.register_device(payload)
 
-        if len(response) > 0:
-            self.DEVICE_ID = int(response[0]["device_id"])
-        else:
-            raise Exception("KeyError, DEVICE_ID was not received.")
+        if len(response) == 0:
+            raise RegistrationError("DEVICE_ID was not received.")
+        self.DEVICE_ID = int(response[0]["device_id"])
 
-        logger.info("Registered.")
-
-    def led_indicator(func):
-        def wrapper(self, *args, **kwargs):
-            self.led.on()
-            func_output = func(self, *args, **kwargs)
-            self.led.off()
-            return func_output
-
-        return wrapper
+        logger.debug("Registered.")
